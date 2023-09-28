@@ -22,8 +22,10 @@ defmodule FirstApi.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-     {:plug_cowboy, "~> 2.0"},
-     {:jason, "~> 1.4"},
+      {:plug_cowboy, "~> 2.0"},
+      {:jason, "~> 1.4"},
+      {:myxql, "~> 0.6.0"},
+      {:uuid, "~> 1.1"}
     ]
   end
 end
