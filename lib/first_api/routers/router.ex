@@ -1,4 +1,7 @@
 defmodule FirstApi.Router do
+  @moduledoc """
+  Create, Read, Update, Delete REST API from Database Mysql
+  """
   use Plug.Router
 
   plug(Plug.Logger)
@@ -13,10 +16,13 @@ defmodule FirstApi.Router do
 
   plug(:dispatch)
 
+
+  # get API Response Elixir
   get "/" do
     send_resp(conn, 200, "OK DI ELIXIR")
   end
 
+  # Create Table Mahasiswa to DB Mysql
   get "/api/create_tablemahasiswa" do
     case MyXQL.query(
            :myxql,
@@ -32,6 +38,7 @@ defmodule FirstApi.Router do
     end
   end
 
+  # Get Api Mahasiswa
   get "/api/mahasiswa" do
     case MyXQL.query(:myxql, "SELECT * FROM mahasiswa") do
       {:ok, %{rows: result, columns: col}} ->
@@ -49,6 +56,7 @@ defmodule FirstApi.Router do
     end
   end
 
+  # Get Mahasiswa By Id
   get "/api/mahasiswa/:id" do
     case MyXQL.query(:myxql, "SELECT * FROM mahasiswa WHERE MahasiswaId = '#{id}' LIMIT 1") do
       {:ok, %{rows: result, columns: col}} ->
@@ -69,6 +77,7 @@ defmodule FirstApi.Router do
     end
   end
 
+  # Create API Mahasiswa
   post "/api/create_mahasiswa" do
     case conn.body_params do
       %{
@@ -93,44 +102,52 @@ defmodule FirstApi.Router do
     end
   end
 
+  # Update API Mahasiswa
   put "/api/update_mahasiswa/:id" do
-    case MyXQL.query(:myxql, "SELECT * FROM mahasiswa WHERE MahasiswaId = '#{id}' LIMIT 1") do
+    id = conn.params["id"]
+
+    case MyXQL.query(:myxql, "SELECT * FROM mahasiswa WHERE MahasiswaId = ? LIMIT 1", [id]) do
       {:ok, %{rows: [result]}} ->
         current_date = Date.utc_today() # Mengambil tanggal hari ini dalam format UTC
         formatted_date = Date.to_string(current_date) # Mengonversi tanggal ke string
         update_fields =
           conn.body_params
           |> Map.take(["NomorMahasiswa", "NamaMahasiswa", "TanggalLahirSiswa", "TempatLahirSiswa"])
-          |> Map.put("UpdatedAt", formatted_date)
+          |> Map.put("UpdateAt", formatted_date)
 
         set_clause =
           Enum.map(update_fields, fn {column, value} ->
-            "#{column} = ''#{value}''"
+            "#{column} = '#{value}'"
           end)
+          |> Enum.join(", ")
 
-        query = "UPDATE mahasiswa SET #{set_clause} WHERE MahasiswaId = #{id}"
+        query = "UPDATE mahasiswa SET #{set_clause} WHERE MahasiswaId = ?"
 
-        case MyXQL.query(:myxql, query) do
+        case MyXQL.query(:myxql, query, [id]) do
           {:ok, _} ->
             conn
             |> put_resp_content_type("application/json")
-            |> send_resp(200,"Mahasiswa Updated")
+            |> send_resp(200, "Mahasiswa Updated")
 
-          {:error, _reason} ->
+          {:error, reason} ->
+            IO.inspect(reason, label: "MyXQL Error") # Cetak error message untuk debugging
             send_resp(conn, 500, "Something went wrong")
+
         end
 
       {:ok, %{rows: []}} ->
-        send_resp(conn, 404, "Issue not found")
+        send_resp(conn, 404, "Mahasiswa not found")
 
       {:ok, _result} ->
         send_resp(conn, 500, "Unexpected query result")
 
-      {:error, _reason} ->
+      {:error, reason} ->
+        IO.inspect(reason, label: "MyXQL Error") # Cetak error message untuk debugging
         send_resp(conn, 500, "Something went wrong")
     end
   end
 
+  # Delete API Mahasiswa
   delete "/api/delete_mahasiswa/:id" do
     id = conn.params["id"]
 
